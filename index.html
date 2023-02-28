@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>My First HTML Page</title>
+	</head>
+
+	<body>
+		<canvas id="canvas"></canvas>
+
+		<script id="vertex-shader" type="x-shader/x-vertex">
+			attribute vec4 a_position;
+			attribute vec4 a_color;
+
+			// Apparently, this is supposed to be grabbed by the fragment shader
+			varying vec4 v_color;
+
+			void main() {
+				gl_Position = a_position;
+				v_color = a_color;
+			}
+		</script>
+
+		<script id="fragment-shader" type="x-shader/x-fragment">
+			precision mediump float;
+
+			varying vec4 v_color;
+
+			void main() {
+				gl_FragColor = v_color;
+			}
+		</script>
+
+		<script>
+			// Step 0: init WebGL context
+
+			const canvas = document.getElementById('canvas');
+
+			const gl = canvas.getContext('webgl');
+
+			if (!gl) {
+				alert('WebGL not supported');
+				throw new Error('WebGL not supported');
+			};
+
+			// Step 1: init shaders
+
+			const vs = document.getElementById('vertex-shader');
+			const fs = document.getElementById('fragment-shader');
+
+			initShaders(gl, vs, fs);
+
+			function initShaders(gl, vs, fs) {
+				const vertexShader = makeShader(gl, vs.text, gl.VERTEX_SHADER);
+				const fragmentShader = makeShader(gl, fs.text, gl.FRAGMENT_SHADER);
+
+				const program = gl.createProgram();
+				gl.attachShader(program, vertexShader);
+				gl.attachShader(program, fragmentShader);
+				gl.linkProgram(program);
+				const success = gl.getProgramParameter(program, gl.LINK_STATUS);
+				
+				if (!success) {
+					throw new Error('Failed to link program');
+				}
+
+				gl.useProgram(program);
+				gl.program = program;
+			}
+
+			function makeShader(gl, src, type) {
+				const shader = gl.createShader(type);
+				gl.shaderSource(shader, src);
+				gl.compileShader(shader);
+				const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+				if (success) {
+					return shader;
+				}
+
+				throw new Error('Failed to make shader');
+			}
+
+			// Step 2: init buffers
+
+			const vertices = new Float32Array([
+				0, 0.5, 0,  // Vertex #1
+				-0.5, -0.5, 0, // Vertex #2
+				0.5, -0.5, 0 // Vertex #3
+			]);
+
+			const vertexBuffer = gl.createBuffer();
+			if (!vertexBuffer) {
+				throw new Error('Failed to create vertex buffer');
+			}
+
+			gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+			const aPosition = gl.getAttribLocation(gl.program, 'a_position');
+			if (aPosition < 0) {
+				throw new Error('Failed to get attribute location');
+			}
+
+			gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);
+			gl.enableVertexAttribArray(aPosition);
+
+			// Step 3: draw
+
+			gl.clearColor(0, 0, 0, 1);
+			gl.clear(gl.COLOR_BUFFER_BIT);
+
+			gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+		</script>
+	</body>
+</html>
